@@ -9,7 +9,7 @@ RSpec.describe "Providers / Resolving components with same root key as a running
         module Test
           module Animals
             class Cat
-              include Deps["animals.collar"]
+              # include Deps["animals.collar"]
             end
           end
         end
@@ -27,7 +27,7 @@ RSpec.describe "Providers / Resolving components with same root key as a running
         Test::Container.register_provider :animals, namespace: true do
           start do
             require "animals/cat"
-            register :cat, Test::Animals::Cat.new
+            register :cat, Test::Animals::Cat
           end
         end
       RUBY
@@ -49,6 +49,16 @@ RSpec.describe "Providers / Resolving components with same root key as a running
   end
 
   context "lazy loading" do
+    it "is thread safe" do
+      threads = []
+      2.times do
+        threads << Thread.new do
+          Test::Container['animals.cat']
+        end
+      end 
+      expect { threads.each(&:join) }.not_to raise_error
+    end
+
     it "resolves the component without attempting to re-run provider steps" do
       expect(Test::Container["animals.cat"]).to be
     end
